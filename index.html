@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Planificación de rutas de carga para vehículos eléctricos">
+    <title>Planificador de Rutas para Vehículos Eléctricos</title>
+
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet.markercluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+    <!-- Colección de iconos -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Estilos de la aplicación -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="filters-panel" id="filtersPanel">
+            <div class="filters-card">
+                <h3 class="filters-title">Estaciones de carga</h3>
+                <div class="filters-info">
+                    <p class="filters-stat"><span class="label">Visibles:</span> <span id="visibleCount">0</span> puntos</p>
+                    <p class="filters-stat"><span class="label">País:</span> <span id="currentCountry">España</span></p>
+                </div>
+                <button class="btn-secondary" id="openFiltersBtn">
+                    <span class="material-icons-outlined">tune</span>
+                    Modificar filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel lateral Mi Ruta -->
+        <div class="route-panel" id="routePanel">
+            <div class="route-header">
+                <h2 class="route-title">
+                    <span class="material-icons-outlined">route</span>
+                    Mi Ruta
+                </h2>
+                <button class="btn-toggle-route" id="hideRouteBtn">
+                    <span>Ocultar panel</span>
+                    <span class="material-icons-outlined">chevron_right</span>
+                </button>
+            </div>
+            
+            <div class="route-content">
+                <div class="route-empty" id="routeEmpty">
+                    <span class="material-icons-outlined" style="font-size: 48px; color: #BDBDBD;">add_location</span>
+                    <p style="color: #757575; margin-top: 16px;">Añade puntos de carga para crear tu ruta</p>
+                </div>
+                <!-- Lista de puntos que se genera dinámicamente -->
+                <div class="route-list" id="routeList" style="display: none;">    
+                </div>
+            </div>
+            
+            <div class="route-actions" id="routeActions" style="display: none;">
+                <button class="btn-route-action btn-primary" id="exportRouteBtn">
+                    <span class="material-icons-outlined">open_in_new</span>
+                    Exportar a Google Maps
+                </button>
+                <button class="btn-route-action btn-secondary" id="saveRouteBtn">
+                    <span class="material-icons-outlined">bookmark</span>
+                    Guardar ruta
+                </button>
+                <button class="btn-route-action btn-danger" id="clearRouteBtn">
+                    <span class="material-icons-outlined">delete</span>
+                    Limpiar ruta
+                </button>
+            </div>
+        </div>
+
+        <!-- Botón flotante para mostrar el panel de ruta -->
+        <button class="btn-show-route" id="showRouteBtn">
+            <span class="material-icons-outlined">chevron_left</span>
+            <span>Mostrar panel</span>
+        </button>
+
+        <!-- Modal de Historial -->
+        <div class="modal" id="historyModal">
+            <div class="modal-overlay" onclick="HistoryManager.closeModal()"></div>
+            <div class="modal-content history-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">
+                        <span class="material-icons-outlined">history</span>
+                        Historial de Rutas
+                    </h2>
+                    <button class="btn-close-modal" onclick="HistoryManager.closeModal()">
+                        <span class="material-icons-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Estado vacío -->
+                    <div class="history-empty" id="historyEmpty">
+                        <span class="material-icons-outlined" style="font-size: 64px; color: #BDBDBD;">folder_open</span>
+                        <p style="color: #757575; margin-top: 16px; font-size: 16px;">No hay rutas guardadas</p>
+                    </div>
+                    
+                    <!-- Lista de rutas -->
+                    <div class="history-list" id="historyList" style="display: none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Perfil -->
+        <div class="modal" id="profileModal">
+            <div class="modal-overlay" onclick="ProfileManager.closeModal()"></div>
+            <div class="modal-content profile-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">
+                        <span class="material-icons-outlined">person</span>
+                        Mi Perfil
+                    </h2>
+                    <button class="btn-close-modal" onclick="ProfileManager.closeModal()">
+                        <span class="material-icons-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Sección: Mis Vehículos -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-title">
+                            <span class="material-icons-outlined">directions_car</span>
+                            Mis Vehículos
+                        </h3>                       
+                        <div class="vehicles-list" id="vehiclesList">
+                        </div>
+                        
+                        <button class="btn-add-vehicle" onclick="ProfileManager.showVehicleForm()">
+                            <span class="material-icons-outlined">add</span>
+                            Agregar vehículo
+                        </button>
+                    </div>
+                    
+                    <!-- Sección: Preferencias de Carga -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-title">
+                            <span class="material-icons-outlined">bolt</span>
+                            Preferencias de Carga
+                        </h3>
+                        
+                        <div class="preference-group">
+                            <label class="preference-label">Velocidad mínima:</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="minSpeed" value="all" id="speedAll">
+                                    <span>Todas las velocidades</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="minSpeed" value="50" id="speed50">
+                                    <span>Rápida (>50 kW)</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="minSpeed" value="150" id="speed150">
+                                    <span>Ultra-rápida (>150 kW)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="btn-modal-action btn-primary" onclick="ProfileManager.saveProfile()">
+                        <span class="material-icons-outlined">save</span>
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Agregar/Editar Vehículo -->
+        <div class="modal" id="vehicleFormModal">
+            <div class="modal-overlay" onclick="ProfileManager.closeVehicleForm()"></div>
+            <div class="modal-content vehicle-form-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="vehicleFormTitle">
+                        <span class="material-icons-outlined">directions_car</span>
+                        Agregar Vehículo
+                    </h2>
+                    <button class="btn-close-modal" onclick="ProfileManager.closeVehicleForm()">
+                        <span class="material-icons-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Marca</label>
+                        <input type="text" class="form-input" id="vehicleBrand" placeholder="Ej: Tesla">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Modelo</label>
+                        <input type="text" class="form-input" id="vehicleModel" placeholder="Ej: Model 3">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Autonomía (km)</label>
+                        <input type="number" class="form-input" id="vehicleRange" placeholder="Ej: 500">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Batería (kWh)</label>
+                        <input type="number" class="form-input" id="vehicleBattery" placeholder="Ej: 55">
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="btn-modal-action btn-secondary" onclick="ProfileManager.closeVehicleForm()">
+                        Cancelar
+                    </button>
+                    <button class="btn-modal-action btn-primary" onclick="ProfileManager.saveVehicle()">
+                        <span class="material-icons-outlined">save</span>
+                        Guardar vehículo
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Botones del Header -->
+        <div class="header-buttons">
+            <button class="btn-header" id="historialBtn">
+                <span class="material-icons-outlined">history</span>
+                Historial
+            </button>
+            <button class="btn-header" id="perfilBtn">
+                <span class="material-icons-outlined">person</span>
+                Mi Perfil
+            </button>
+        </div>
+
+        <div id="map" class="map-container"></div>
+        <!-- Control de Zoom -->
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="zoomInBtn">
+                <span class="material-icons-outlined">add</span>
+            </button>
+            <button class="zoom-btn" id="zoomOutBtn">
+                <span class="material-icons-outlined">remove</span>
+            </button>
+        </div>
+        <!-- Animación de carga -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <p class="loading-text" id="loadingText">Cargando estaciones de carga...</p>
+            <p class="loading-progress" id="loadingProgress" style="font-size: 14px; color: #757575; margin-top: 8px;"></p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="filtersModal">
+        <div class="modal-panel filters-modal">
+            <div class="modal-header">
+                <h2>Filtros</h2>
+                <button class="btn-close" id="closeFiltersBtn">
+                    <span class="material-icons-outlined">close</span>
+                </button>
+            </div>
+            <!-- Modal Panel de Filtros -->
+            <div class="modal-content">
+                <div class="filter-section">
+                    <h3 class="filter-heading">
+                        <span class="material-icons-outlined">public</span>
+                        País
+                    </h3>
+                    <select id="countryFilter" class="select-input">
+                        <option value="ES" selected>España</option>
+                    </select>
+                </div>
+
+                <!-- Filtros -->
+                <div class="filter-section">
+                    <h3 class="filter-heading">
+                        <span class="material-icons-outlined">bolt</span>
+                        Velocidad de carga
+                    </h3>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="slow" data-filter="speed">
+                        <span>Lenta (3-7 kW)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="semi-fast" data-filter="speed">
+                        <span>Semi-rápida (7-22 kW)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="fast" data-filter="speed">
+                        <span>Rápida (50+ kW)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="ultra-fast" data-filter="speed">
+                        <span>Ultra-rápida (150+ kW)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" id="clearFiltersBtn">Limpiar</button>
+                <button class="btn-primary" id="applyFiltersBtn">
+                    Aplicar (<span id="filteredCount">0</span>)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet.js -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet.markercluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <!-- Scripts de la aplicación IMPORTANTE: respetar orden de carga -->
+    <script src="js/config.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/profile-manager.js"></script>
+    <script src="js/history-manager.js"></script>
+    <script src="js/route-manager.js"></script>
+    <script src="js/map-controller.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
