@@ -16,19 +16,15 @@ Características
 
 Estructura del proyecto
 
-
-├── index.html              Punto de entrada de la aplicación
-├── css/
-│   └── styles.css          Estilos de la aplicación
-└── js/
-    ├── config.js           Configuración (API, mapa, regiones)
-    ├── filters.js          Sistema de filtros
-    ├── profile-manager.js  Gestión del perfil y vehículos
-    ├── history-manager.js  Historial de rutas guardadas
-    ├── route-manager.js    Planificador de rutas
-    ├── map-controller.js   Control del mapa y estaciones
-    └── app.js              Inicialización de la aplicación
-
+index.html - Punto de entrada de la aplicación
+css/styles.css - Estilos de la aplicación
+js/config.js - Configuración (API, mapa, regiones)
+js/filters.js - Sistema de filtros
+js/profile-manager.js - Gestión del perfil y vehículos
+js/history-manager.js - Historial de rutas guardadas
+js/route-manager.js - Planificador de rutas
+js/map-controller.js - Control del mapa y estaciones
+js/app.js - Inicio de la aplicación
 
 Tecnologías utilizadas
 
